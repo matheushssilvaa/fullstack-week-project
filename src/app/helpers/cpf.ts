@@ -1,8 +1,11 @@
+export const removeCpfPontiation = (cpf: string) => {
+    return cpf.replace(/[\.\-]/g, "")
+}
+
 export const isValidCpf = (cpf: string): boolean => {
-    // Remove caracteres não numéricos
+
     cpf = cpf.replace(/\D/g, "");
 
-    // Verifica se o CPF tem 11 dígitos
     if (cpf.length !== 11) {
         return false;
     }

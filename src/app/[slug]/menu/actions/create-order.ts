@@ -1,5 +1,6 @@
 'use server'
 
+import { removeCpfPontiation } from "@/app/helpers/cpf"
 import { db } from "@/lib/prisma"
 import { ConsumptionMethod } from "@prisma/client"
 
@@ -11,11 +12,20 @@ interface CreateOrderInput {
         quantity: number
     }>
     consumptionMethod: ConsumptionMethod,
-    restaurantId: string,
-    total: number
+    slug: string,
 }
 
 export const createOrder = async (input: CreateOrderInput) => {
+    const restaurant = await db.restaurant.findUnique({
+        where: {
+            slug: input.slug
+        }
+    })
+
+    if (!restaurant) {
+        throw new Error("Restaurant not found")
+    }
+
     const productsFromDb = await db.product.findMany({
         where: {
             id: {
@@ -28,7 +38,6 @@ export const createOrder = async (input: CreateOrderInput) => {
         }
     })
 
-    // Montar estrutura com id, quantidade e preço
     const productsWithPricesAndQuantity = input.products.map(product => {
         const productData = productsFromDb.find(p => p.id === product.id)
         if (!productData) {
@@ -49,7 +58,7 @@ export const createOrder = async (input: CreateOrderInput) => {
         data: {
             status: "PENDING",
             customerName: input.customerName,
-            customerCpf: input.customerCPF,
+            customerCpf: removeCpfPontiation(input.customerCPF),
             orderProducts: {
                 createMany: {
                     data: productsWithPricesAndQuantity
@@ -57,7 +66,7 @@ export const createOrder = async (input: CreateOrderInput) => {
             },
             total,
             consumptionMethod: input.consumptionMethod,
-            restaurantId: input.restaurantId
+            restaurantId: restaurant.id
         }
     })
 }

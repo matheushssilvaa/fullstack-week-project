@@ -8,7 +8,6 @@ import {
     DrawerFooter,
     DrawerHeader,
     DrawerTitle,
-    DrawerTrigger,
 } from "@/components/ui/drawer"
 import {
     Form,
@@ -25,6 +24,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { Input } from "@/components/ui/input"
 
 import { PatternFormat } from "react-number-format"
+import { createOrder } from "../actions/create-order"
+import { useParams, useSearchParams } from "next/navigation"
+import { ConsumptionMethod } from "@prisma/client"
+import { useContext } from "react"
+import { CartContext } from "@/app/contexts/Cart"
 
 const formSchema = z.object({
     name: z.string().trim().min(1, {
@@ -43,6 +47,9 @@ interface FinishOrderDialogProps {
 type FormSchema = z.infer<typeof formSchema>
 
 const FinishOrderDialog = ({ open, onOpenChange }: FinishOrderDialogProps) => {
+    const { slug } = useParams<{ slug: string }>()
+    const { products } = useContext(CartContext)
+    const searchParams = useSearchParams()
     const form = useForm<FormSchema>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -52,12 +59,21 @@ const FinishOrderDialog = ({ open, onOpenChange }: FinishOrderDialogProps) => {
         shouldUnregister: true
     })
 
-    const onSubmit = (data: FormSchema) => {
-        console.log(data)
+    const onSubmit = async (data: FormSchema) => {
+        try {
+            const consumptionMethod = searchParams.get("consumpionMethod") as ConsumptionMethod
+            await createOrder({
+                consumptionMethod,
+                customerCPF: data.cpf,
+                customerName: data.name,
+                products,
+                slug,
+            });
+            onOpenChange(false)
+        } catch (err) {
+            console.error(err)
+        }
     }
-
-    // SERVER ACTIONS
-    // - funções que são executadas no servidor, mas podem ser chamadas por client components
 
     return (
         <div>
